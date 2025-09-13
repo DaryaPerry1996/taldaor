@@ -21,7 +21,6 @@
     - `request_logs`
       - `id` (uuid, primary key)
       - `request_id` (uuid, references requests)
-      - `action` (text)
       - `old_status` (text, nullable)
       - `new_status` (text, nullable)
       - `notes` (text, nullable)

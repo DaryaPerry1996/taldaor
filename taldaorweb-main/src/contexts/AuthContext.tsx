@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, apartmentNumber?: string, role?: 'tenant' | 'admin') => Promise<{ error: any }>;
+  signUp: (email: string, password: string, apartmentNumber?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -73,10 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
-  const signUp = async (email: string, password: string, apartmentNumber?: string, role: 'tenant' | 'admin' = 'tenant') => {
+  const signUp = async (email: string, password: string, apartmentNumber?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: { data: { role:'tenant'}},
     });
 
     if (!error && data.user) {
@@ -86,8 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .insert({
           id: data.user.id,
           email,
-          role,
-          apartment_number: apartmentNumber,
+          role: 'tenant',
+          apartment_number: apartmentNumber ?? null,
         });
 
       if (profileError) {
