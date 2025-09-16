@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, Eye, EyeOff } from 'lucide-react';
 
@@ -6,7 +6,6 @@ export function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [apartmentNumber, setApartmentNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
  
@@ -15,12 +14,19 @@ export function Auth() {
    const [error, setError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
 
-  // Helper: detect “email not confirmed” style error from Supabase
+  useEffect(() => {
+    const cached = localStorage.getItem('signup_email');
+    if (cached) {
+      setEmail(cached);
+      localStorage.removeItem('signup_email');
+    }
+  }, []);
+
   const looksLikeUnconfirmed = (err: any) =>
-    typeof err?.message === 'string' &&
-    /confirm|confirmation|not.*verified|not.*confirmed/i.test(err.message);
+    typeof err?.message === 'string' && /confirm|confirmation|not.*verified|not.*confirmed/i.test(err.message);
+
 
   // Resend the confirmation email to the typed address
   // Resend the confirmation email by calling your serverless function
@@ -71,6 +77,7 @@ const resendConfirmation = async () => {
         }
       } else {
   // Ask the server to invite this email (only if it's on the allowlist)
+  localStorage.setItem('signup_email', email);
   const resp = await fetch('/api/request-signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -164,62 +171,28 @@ const resendConfirmation = async () => {
             </div>
 
 
-            
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
+            {/* Password: ONLY show in Sign-in mode */}
+            {isLogin && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                <div className="mt-1 relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your password"
+                  />
+                  <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {!isLogin && (
-                <div>
-                    <label htmlFor="apartment" className="block text-sm font-medium text-gray-700">
-                      Apartment Number
-                    </label>
-                    <input
-                      id="apartment"
-                      name="apartment"
-                      type="text"
-                      value={apartmentNumber}
-                      onChange={(e) => setApartmentNumber(e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., 101, 2A, etc."
-                    />
-                  </div>
             )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-            >
-              {loading ? 'Please wait...' : (isLogin ? 'Sign in' : 'Sign up')}
-            </button>
 
             <div className="text-center">
               <button
