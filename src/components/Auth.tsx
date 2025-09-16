@@ -23,23 +23,33 @@ export function Auth() {
     /confirm|confirmation|not.*verified|not.*confirmed/i.test(err.message);
 
   // Resend the confirmation email to the typed address
-  const resendConfirmation = async () => {
-    setLoading(true);
-    setError(null);
-    setInfoMsg(null);
-    try {
-      const { error: resendErr } = await supabase.auth.resend({
-        type: 'signup', // resend the confirmation email
-        email,          // to the email in the input
-      });
-      if (resendErr) throw resendErr;
+  // Resend the confirmation email by calling your serverless function
+const resendConfirmation = async () => {
+  setLoading(true);
+  setError(null);
+  setInfoMsg(null);
+
+  try {
+    const resp = await fetch('/api/resend-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const result = await resp.json();
+
+    if (result?.ok && result?.resent) {
       setInfoMsg('We’ve sent another confirmation email. Please check your inbox (and spam).');
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not resend the confirmation email.');
-    } finally {
-      setLoading(false);
+    } else {
+      // keep it neutral (email may not be on the allowlist)
+      setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
     }
-  };
+  } catch (e: any) {
+    setError(e?.message ?? 'Could not resend the confirmation email.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,13 +70,26 @@ export function Auth() {
           throw error;
         }
       } else {
-        // SIGN UP: on success, show friendly banner
-        const { error } = await signUp(email, password, apartmentNumber);
-        if (error) throw error;
+  // Ask the server to invite this email (only if it's on the allowlist)
+  const resp = await fetch('/api/request-signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const result = await resp.json();
 
-        // ✅ Signup request accepted — Supabase has emailed a confirmation link.
-        setShowConfirmBanner(true);
-      }
+  if (result?.ok && result?.sent) {
+    // ✅ Invite sent — Supabase emailed the confirmation link
+    setShowConfirmBanner(true);
+    setError(null);
+    setInfoMsg(null);
+  } else {
+    // Neutral message if not approved (or any other non-sent outcome)
+    setShowConfirmBanner(false);
+    setInfoMsg(null);
+    setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
+  }
+}
     } catch (err: any) {
       setError(err?.message ?? 'Something went wrong.');
     } finally {
