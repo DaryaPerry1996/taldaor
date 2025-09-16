@@ -132,7 +132,7 @@ export function Auth() {
           // Neutral message if not on allowlist (or any non-sent outcome)
           setShowConfirmBanner(false);
           setInfoMsg(null);
-          setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
+          setError('your email is not approved , contact taldaor for approval');
         }
       }
     } catch (err: any) {
