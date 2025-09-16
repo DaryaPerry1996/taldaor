@@ -8,54 +8,84 @@ export function Auth() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
- 
 
   const [showConfirmBanner, setShowConfirmBanner] = useState(false);
-   const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
   const { signIn } = useAuth();
 
+  // Prefill email and handle return from hosted confirm page
   useEffect(() => {
     const cached = localStorage.getItem('signup_email');
-    if (cached) {
-      setEmail(cached);
+    if (cached) setEmail(cached);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('confirmed') === '1') {
+      setIsLogin(true);
+      setShowConfirmBanner(false);
+      setInfoMsg('Your email is confirmed. Please sign in with your new password.');
       localStorage.removeItem('signup_email');
+      // Clean the URL
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
   const looksLikeUnconfirmed = (err: any) =>
-    typeof err?.message === 'string' && /confirm|confirmation|not.*verified|not.*confirmed/i.test(err.message);
+    typeof err?.message === 'string' &&
+    /confirm|confirmation|not.*verified|not.*confirmed/i.test(err.message);
 
+  // Resend the confirmation email (serverless)
+  const resendConfirmation = async () => {
+    setLoading(true);
+    setError(null);
+    setInfoMsg(null);
 
-  // Resend the confirmation email to the typed address
-  // Resend the confirmation email by calling your serverless function
-const resendConfirmation = async () => {
-  setLoading(true);
-  setError(null);
-  setInfoMsg(null);
+    try {
+      const resp = await fetch('/api/resend-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const result = await resp.json();
 
-  try {
-    const resp = await fetch('/api/resend-confirmation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const result = await resp.json();
-
-    if (result?.ok && result?.resent) {
-      setInfoMsg('We’ve sent another confirmation email. Please check your inbox (and spam).');
-    } else {
-      // keep it neutral (email may not be on the allowlist)
-      setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
+      if (result?.ok && result?.resent) {
+        setInfoMsg('We’ve sent another confirmation email. Please check your inbox (and spam).');
+      } else {
+        setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
+      }
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not resend the confirmation email.');
+    } finally {
+      setLoading(false);
     }
-  } catch (e: any) {
-    setError(e?.message ?? 'Could not resend the confirmation email.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
+  // Send password reset (only if profile exists; server enforces this)
+  const sendPasswordReset = async () => {
+    setLoading(true);
+    setError(null);
+    setInfoMsg(null);
+    try {
+      const resp = await fetch('/api/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const result = await resp.json();
+      if (result?.ok && result?.resetSent) {
+        setInfoMsg('We’ve sent a password reset link to your email.');
+      } else if (result?.reason === 'no_profile') {
+        setError('No profile found for that email.');
+      } else {
+        setError(result?.error || 'Could not send the reset email.');
+      }
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not send the reset email.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,39 +94,47 @@ const resendConfirmation = async () => {
     setInfoMsg(null);
     setShowConfirmBanner(false);
 
-   try {
+    try {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          // If user tries to log in before confirming, show the friendly banner
           if (looksLikeUnconfirmed(error)) {
             setShowConfirmBanner(true);
-            return; // don’t rethrow, we handled it
+            return; // handled
           }
           throw error;
         }
       } else {
-  // Ask the server to invite this email (only if it's on the allowlist)
-  localStorage.setItem('signup_email', email);
-  const resp = await fetch('/api/request-signup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  });
-  const result = await resp.json();
+        // SIGN UP (email only): ask server to invite if allowed
+        localStorage.setItem('signup_email', email);
+        const resp = await fetch('/api/request-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const result = await resp.json();
 
-  if (result?.ok && result?.sent) {
-    // ✅ Invite sent — Supabase emailed the confirmation link
-    setShowConfirmBanner(true);
-    setError(null);
-    setInfoMsg(null);
-  } else {
-    // Neutral message if not approved (or any other non-sent outcome)
-    setShowConfirmBanner(false);
-    setInfoMsg(null);
-    setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
-  }
-}
+        // If the profile already exists, tell user & switch to Sign in
+        if (result?.profileExists) {
+          setShowConfirmBanner(false);
+          setInfoMsg(null);
+          setError('A user already exists with that profile.');
+          setIsLogin(true);
+          return;
+        }
+
+        if (result?.ok && result?.sent) {
+          // Invite/confirmation email sent
+          setShowConfirmBanner(true);
+          setError(null);
+          setInfoMsg(null);
+        } else {
+          // Neutral message if not on allowlist (or any non-sent outcome)
+          setShowConfirmBanner(false);
+          setInfoMsg(null);
+          setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
+        }
+      }
     } catch (err: any) {
       setError(err?.message ?? 'Something went wrong.');
     } finally {
@@ -116,11 +154,11 @@ const resendConfirmation = async () => {
             {isLogin ? 'Sign in to your account' : 'Create your account'}
           </p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="bg-white p-8 rounded-lg shadow-md space-y-6">
 
-            {/* ✅ Friendly confirmation banner */}
+            {/* Confirmation sent banner */}
             {showConfirmBanner && (
               <div className="border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 rounded-md text-sm">
                 <p className="font-medium mb-1">Confirmation email sent</p>
@@ -139,20 +177,21 @@ const resendConfirmation = async () => {
               </div>
             )}
 
-            {/* Info banner (e.g., after resend) */}
+            {/* Info banner */}
             {infoMsg && (
               <div className="border border-blue-200 bg-blue-50 text-blue-800 px-4 py-3 rounded-md text-sm">
                 {infoMsg}
               </div>
             )}
 
-            {/* Error banner (only show if not showing the confirm banner) */}
+            {/* Error banner */}
             {error && !showConfirmBanner && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
                 {error}
               </div>
             )}
 
+            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -170,30 +209,55 @@ const resendConfirmation = async () => {
               />
             </div>
 
-
             {/* Password: ONLY show in Sign-in mode */}
             {isLogin && (
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-                <div className="mt-1 relative">
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter your password"
-                  />
-                  <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center" onClick={() => setShowPassword(!showPassword)}>
-                    {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
+              <>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <div className="mt-1 relative">
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter your password"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Forgot password */}
+                <div className="flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={sendPasswordReset}
+                    className="text-sm text-blue-600 hover:text-blue-500"
+                    disabled={loading || !email}
+                    title={!email ? 'Enter your email first' : ''}
+                  >
+                    Forgot your password?
                   </button>
                 </div>
-              </div>
+              </>
             )}
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -202,6 +266,7 @@ const resendConfirmation = async () => {
               {loading ? 'Please wait...' : (isLogin ? 'Sign in' : 'Send invite')}
             </button>
 
+            {/* Toggle */}
             <div className="text-center">
               <button
                 type="button"
