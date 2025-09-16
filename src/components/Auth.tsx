@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, Eye, EyeOff } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-
 
 export function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -69,22 +61,7 @@ export function Auth() {
         }
       } else {
         // SIGN UP: on success, show friendly banner
-        /* Instead of: const { error } = await signUp(email, password, apartmentNumber);*/
-const resp = await fetch('/api/request-signup', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email }),
-});
-const result = await resp.json();
-
-if (result?.ok && result?.sent) {
-  // ✅ Invite sent. Supabase emailed the confirmation link.
-  setShowConfirmBanner(true);
-  // You can store apartmentNumber client-side and write it to profile on first login if you want.
-} else {
-  // Not on allowlist (or some neutral failure). Show a friendly message.
-  setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
-}
+        const { error } = await signUp(email, password, apartmentNumber);
         if (error) throw error;
 
         // ✅ Signup request accepted — Supabase has emailed a confirmation link.

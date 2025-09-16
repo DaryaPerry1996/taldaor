@@ -3,8 +3,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { User as AppUser } from '../types';
 
-
-
 interface AuthContextType {
   user: User | null;
   profile: AppUser | null;
