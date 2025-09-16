@@ -1,36 +1,84 @@
-// api/resend-confirmation.ts
-
+// /api/resend-confirmation.ts
 import { createClient } from '@supabase/supabase-js';
 
+const normalize = (s: unknown) => String(s ?? '').trim().toLowerCase();
+
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! // SERVER ONLY
-  );
-
-  const email = String(req.body?.email ?? '').toLowerCase().trim();
-  if (!email) return res.status(400).json({ error: 'Missing email' });
-
-  // re-check allowlist to avoid info leakage
-  const { data: ok, error: checkErr } = await supabase
-    .from('approved_emails')
-    .select('email')
-    .eq('email', email)
-    .single();
-
-  if (checkErr || !ok) {
-    // still neutral
-    return res.status(200).json({ ok: true, resent: false });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
   }
 
-  // re-send the invite/confirmation
-  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    data: { role: 'tenant' },
+  const url = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    return res.status(500).json({ ok: false, error: 'Server not configured' });
+  }
+
+  // Robust body parse (Vercel can pass string)
+  let body: any = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch { body = {}; }
+  }
+
+  const email = normalize(body?.email);
+  if (!email) return res.status(400).json({ ok: false, error: 'Missing email' });
+
+  const supabase = createClient(url, serviceKey);
+
+  // 1) Re-check allowlist (case-insensitive, optionally is_active)
+  const { data: approved, error: allowErr } = await supabase
+    .from('approved_emails')
+    .select('email, is_active')
+    .ilike('email', email)
+    .maybeSingle();
+
+  if (allowErr) {
+    console.error('[resend] allowlist error', allowErr);
+    return res.status(500).json({ ok: false, error: 'Allowlist check failed' });
+  }
+  if (!approved || approved.is_active === false) {
+    // neutral: don't leak allow-list state to attackers
+    return res.status(200).json({ ok: true, resent: false, reason: 'not_on_allowlist' });
+  }
+
+  // 2) Make sure an Auth user exists to resend to
+  // (Avoid “user not found” surprises)
+  // @ts-ignore: versions differ
+  const { data: users, error: listErr } = await (supabase as any).auth.admin.listUsers({ page: 1, perPage: 1, email });
+  if (listErr) {
+    console.error('[resend] listUsers error', listErr);
+    return res.status(500).json({ ok: false, error: 'Auth user lookup failed' });
+  }
+  const user = (users?.users || []).find((u: any) => (u.email || '').toLowerCase() === email);
+  if (!user) {
+    // Neutral: don’t disclose too much; your UI can decide to suggest Sign Up
+    return res.status(200).json({ ok: true, resent: false, reason: 'no_auth_user' });
+  }
+
+  // 3) If already confirmed, tell the client to show a helpful message
+  if (user?.email_confirmed_at || user?.confirmed_at) {
+    return res.status(200).json({ ok: true, resent: false, reason: 'already_confirmed' });
+  }
+
+  // 4) Resend confirmation email (preferred over invite for existing users)
+  const redirectBase = process.env.APP_BASE_URL; // e.g., https://taldaor.vercel.app
+  const emailRedirectTo = redirectBase ? `${redirectBase}/?confirmed=1` : undefined;
+
+  const { error: resendErr } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo },
   });
 
-  if (error) return res.status(400).json({ error: error.message });
+  if (resendErr) {
+    console.error('[resend] auth.resend error', resendErr);
+    // Some versions return specific messages for already-confirmed users
+    const msg = String(resendErr.message || '').toLowerCase();
+    if (msg.includes('already confirmed')) {
+      return res.status(200).json({ ok: true, resent: false, reason: 'already_confirmed' });
+    }
+    return res.status(400).json({ ok: false, error: resendErr.message });
+  }
 
-  return res.status(200).json({ ok: true, resent: true, userId: data.user?.id });
+  return res.status(200).json({ ok: true, resent: true });
 }

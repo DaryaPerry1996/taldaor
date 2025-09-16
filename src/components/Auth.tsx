@@ -35,6 +35,8 @@ export function Auth() {
     typeof err?.message === 'string' &&
     /confirm|confirmation|not.*verified|not.*confirmed/i.test(err.message);
 
+  const normalizeEmail = (e: string) => e.trim().toLowerCase();
+
   // Resend the confirmation email (serverless)
   const resendConfirmation = async () => {
     setLoading(true);
@@ -42,17 +44,27 @@ export function Auth() {
     setInfoMsg(null);
 
     try {
+      const cleanEmail = normalizeEmail(email);
       const resp = await fetch('/api/resend-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: cleanEmail }),
       });
       const result = await resp.json();
 
       if (result?.ok && result?.resent) {
         setInfoMsg('We’ve sent another confirmation email. Please check your inbox (and spam).');
+      } else if (result?.reason === 'already_confirmed') {
+        setInfoMsg('Your email is already confirmed. Please sign in with your password.');
+        setIsLogin(true);
+      } else if (result?.reason === 'not_on_allowlist') {
+        setError('Your email is not approved, contact Taldaor for approval');
+      } else if (result?.reason === 'no_auth_user') {
+        setError('No account found for this email. Please sign up first.');
+      } else if (result?.error) {
+        setError(`Server error: ${result.error}`);
       } else {
-        setError('Thanks! If your email is approved, you’ll receive a confirmation link shortly.');
+        setError('Could not resend the confirmation email right now.');
       }
     } catch (e: any) {
       setError(e?.message ?? 'Could not resend the confirmation email.');
@@ -67,18 +79,24 @@ export function Auth() {
     setError(null);
     setInfoMsg(null);
     try {
+      const cleanEmail = normalizeEmail(email);
       const resp = await fetch('/api/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: cleanEmail }),
       });
       const result = await resp.json();
+
       if (result?.ok && result?.resetSent) {
         setInfoMsg('We’ve sent a password reset link to your email.');
       } else if (result?.reason === 'no_profile') {
         setError('No profile found for that email.');
+      } else if (result?.reason === 'no_auth_user') {
+        setError('This email is registered in Taldaor but not yet activated. Please sign up first or contact support.');
+      } else if (result?.error) {
+        setError(`Server error: ${result.error}`);
       } else {
-        setError(result?.error || 'Could not send the reset email.');
+        setError('Could not send the reset email.');
       }
     } catch (e: any) {
       setError(e?.message ?? 'Could not send the reset email.');
@@ -95,8 +113,10 @@ export function Auth() {
     setShowConfirmBanner(false);
 
     try {
+      const cleanEmail = normalizeEmail(email);
+
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(cleanEmail, password);
         if (error) {
           if (looksLikeUnconfirmed(error)) {
             setShowConfirmBanner(true);
@@ -106,19 +126,19 @@ export function Auth() {
         }
       } else {
         // SIGN UP (email only): ask server to invite if allowed
-        localStorage.setItem('signup_email', email);
+        localStorage.setItem('signup_email', cleanEmail);
         const resp = await fetch('/api/request-signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email: cleanEmail }),
         });
         const result = await resp.json();
 
         // If the profile already exists, tell user & switch to Sign in
         if (result?.profileExists) {
           setShowConfirmBanner(false);
-          setInfoMsg(null);
-          setError('A user already exists with that profile.');
+          setInfoMsg('This email is already registered. Please sign in or reset your password.');
+          setError(null);
           setIsLogin(true);
           return;
         }
@@ -128,11 +148,20 @@ export function Auth() {
           setShowConfirmBanner(true);
           setError(null);
           setInfoMsg(null);
-        } else {
-          // Neutral message if not on allowlist (or any non-sent outcome)
+        } else if (result?.reason === 'not_on_allowlist') {
+          // Specific allow-list message
           setShowConfirmBanner(false);
           setInfoMsg(null);
-          setError('your email is not approved , contact taldaor for approval');
+          setError('Your email is not approved, contact Taldaor for approval');
+        } else if (result?.error) {
+          setShowConfirmBanner(false);
+          setInfoMsg(null);
+          setError(`Server error: ${result.error}`);
+        } else {
+          // Fallback neutral message
+          setShowConfirmBanner(false);
+          setInfoMsg(null);
+          setError('Could not send the invite right now. Please try again.');
         }
       }
     } catch (err: any) {
@@ -163,7 +192,7 @@ export function Auth() {
               <div className="border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 rounded-md text-sm">
                 <p className="font-medium mb-1">Confirmation email sent</p>
                 <p className="mb-3">
-                  We’ve sent a confirmation link to <span className="font-mono">{email}</span>.
+                  We’ve sent a confirmation link to <span className="font-mono">{normalizeEmail(email)}</span>.
                   Please check your inbox (and spam) to complete your sign up.
                 </p>
                 <button

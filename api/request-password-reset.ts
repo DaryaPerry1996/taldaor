@@ -1,37 +1,67 @@
 // /api/request-password-reset.ts
 import { createClient } from '@supabase/supabase-js';
 
+const normalize = (s: unknown) => String(s ?? '').trim().toLowerCase();
+
 export default async function handler(req: any, res: any) {
   try {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+    if (req.method !== 'POST') {
+      return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
+    }
 
     const url = process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceKey) return res.status(500).json({ error: 'Server not configured' });
+    if (!url || !serviceKey) {
+      return res.status(500).json({ ok: false, error: 'Server not configured' });
+    }
+
+    // Robust body parse (Vercel sometimes gives string)
+    let body: any = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch { body = {}; }
+    }
+
+    const email = normalize(body?.email);
+    if (!email) return res.status(400).json({ ok: false, error: 'Missing email' });
 
     const supabase = createClient(url, serviceKey);
-    const email = String(req.body?.email ?? '').toLowerCase().trim();
-    if (!email) return res.status(400).json({ error: 'Missing email' });
 
-    // Only allow reset if a profile exists
+    // 1) Profile must exist (case-insensitive)
     const { data: existingProfile, error: profileErr } = await supabase
       .from('profiles')
       .select('id')
-      .eq('email', email)
+      .ilike('email', email)
       .maybeSingle();
 
     if (profileErr) {
       console.error('[reset] profiles query error', profileErr);
-      return res.status(500).json({ error: 'Profiles lookup failed' });
+      return res.status(500).json({ ok: false, error: 'Profiles lookup failed' });
     }
     if (!existingProfile) {
       return res.status(200).json({ ok: true, resetSent: false, reason: 'no_profile' });
     }
 
-    const redirectBase = process.env.APP_BASE_URL; // optional
+    // 2) Ensure there is an Auth user for this email
+    const { data: users, error: listErr } =
+      // @ts-ignore - types vary by package version
+      await (supabase as any).auth.admin.listUsers({ page: 1, perPage: 1, email });
+
+    if (listErr) {
+      console.error('[reset] listUsers error', listErr);
+      return res.status(500).json({ ok: false, error: 'Auth user lookup failed' });
+    }
+    const hasAuthUser = (users?.users || []).some((u: any) =>
+      (u.email || '').toLowerCase() === email
+    );
+    if (!hasAuthUser) {
+      // Don’t attempt recovery if no auth record exists
+      return res.status(200).json({ ok: true, resetSent: false, reason: 'no_auth_user' });
+    }
+
+    // 3) Generate recovery link (sends email)
+    const redirectBase = process.env.APP_BASE_URL; // e.g., https://taldaor.vercel.app
     const redirectTo = redirectBase ? `${redirectBase}/auth/reset-complete` : undefined;
 
-    // Admin API: generate recovery link (sends email)
     const { data, error } = await supabase.auth.admin.generateLink({
       type: 'recovery',
       email,
@@ -40,12 +70,12 @@ export default async function handler(req: any, res: any) {
 
     if (error) {
       console.error('[reset] generateLink error', error);
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ ok: false, error: error.message });
     }
 
     return res.status(200).json({ ok: true, resetSent: true });
   } catch (e: any) {
     console.error('[reset] unhandled', e);
-    return res.status(500).json({ error: 'Unexpected server error' });
+    return res.status(500).json({ ok: false, error: 'Unexpected server error' });
   }
 }
