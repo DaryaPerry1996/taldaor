@@ -28,7 +28,7 @@ export default async function handler(req: any, res: any) {
   // 1) Re-check allowlist (case-insensitive, optionally is_active)
   const { data: approved, error: allowErr } = await supabase
     .from('approved_emails')
-    .select('email, is_active')
+    .select('email')
     .ilike('email', email)
     .maybeSingle();
 
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     console.error('[resend] allowlist error', allowErr);
     return res.status(500).json({ ok: false, error: 'Allowlist check failed' });
   }
-  if (!approved || approved.is_active === false) {
+  if (!approved) {
     // neutral: don't leak allow-list state to attackers
     return res.status(200).json({ ok: true, resent: false, reason: 'not_on_allowlist' });
   }
