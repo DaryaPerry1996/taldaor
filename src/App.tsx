@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Auth } from './components/Auth';
 import { TenantDashboard } from './components/tenant/TenantDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import Reset from './components/Reset'; // <-- add this
 
 function AppContent() {
   const { user, profile, loading } = useAuth();
@@ -23,9 +24,11 @@ function AppContent() {
 }
 
 function App() {
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+
   return (
     <AuthProvider>
-      <AppContent />
+      {path === '/reset' ? <Reset /> : <AppContent />}
     </AuthProvider>
   );
 }
