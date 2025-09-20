@@ -25,7 +25,7 @@ export default async function handler(req: any, res: any) {
 
   const supabase = createClient(url, serviceKey);
 
-  // 1) Re-check allowlist (case-insensitive, optionally is_active)
+  // 1) Re-check allowlist (case-insensitive, optionally)
   const { data: approved, error: allowErr } = await supabase
     .from('approved_emails')
     .select('email')

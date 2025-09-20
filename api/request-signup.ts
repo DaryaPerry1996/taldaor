@@ -42,10 +42,10 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // (B) Check allow-list (case-insensitive) and optional is_active
+    // (B) Check allow-list (case-insensitive) test
     const { data: approved, error: allowErr } = await supabase
       .from('approved_emails')
-      .select('email, is_active')
+      .select('email')
       .ilike('email', email)
       .maybeSingle();
 
@@ -54,7 +54,7 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ error: 'Allowlist check failed' });
     }
 
-    if (!approved || approved.is_active === false) {
+    if (!approved) {
       // Explicit reason so UI can show correct message
       return res.status(200).json({ ok: true, sent: false, reason: 'not_on_allowlist' });
     }
