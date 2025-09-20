@@ -55,15 +55,33 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ ok: true, resent: false, reason: 'no_auth_user' });
   }
 
+  const base = process.env.APP_BASE_URL || process.env.SITE_URL; // support either var
+  const emailRedirectTo = base ? `${base}/?confirmed=1` : undefined;
+  const resetRedirectTo = base ? `${base}/reset-done` : undefined; // tweak to your route
+
   // 3) If already confirmed, tell the client to show a helpful message
+
+  // 3) If already confirmed → send PASSWORD RESET instead of bailing
   if (user?.email_confirmed_at || user?.confirmed_at) {
-    return res.status(200).json({ ok: true, resent: false, reason: 'already_confirmed' });
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: resetRedirectTo || emailRedirectTo, // fallback if you don't have a dedicated reset page
+    });
+
+    if (resetErr) {
+      console.error('[resend] resetPasswordForEmail error', resetErr);
+      return res.status(400).json({ ok: false, error: resetErr.message, reason: 'reset_failed' });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      resent: false,
+      resetSent: true,
+      reason: 'already_confirmed',
+      message: 'Password reset email sent',
+    });
   }
 
-  // 4) Resend confirmation email (preferred over invite for existing users)
-  const redirectBase = process.env.APP_BASE_URL; // e.g., https://taldaor.vercel.app
-  const emailRedirectTo = redirectBase ? `${redirectBase}/?confirmed=1` : undefined;
-
+  // 4) Not confirmed → resend confirmation
   const { error: resendErr } = await supabase.auth.resend({
     type: 'signup',
     email,
@@ -72,10 +90,17 @@ export default async function handler(req: any, res: any) {
 
   if (resendErr) {
     console.error('[resend] auth.resend error', resendErr);
-    // Some versions return specific messages for already-confirmed users
     const msg = String(resendErr.message || '').toLowerCase();
     if (msg.includes('already confirmed')) {
-      return res.status(200).json({ ok: true, resent: false, reason: 'already_confirmed' });
+      // Race condition: user just confirmed; fall back to reset
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: resetRedirectTo || emailRedirectTo,
+      });
+      if (resetErr) {
+        console.error('[resend] reset fallback error', resetErr);
+        return res.status(400).json({ ok: false, error: resetErr.message, reason: 'reset_failed' });
+      }
+      return res.status(200).json({ ok: true, resent: false, resetSent: true, reason: 'already_confirmed' });
     }
     return res.status(400).json({ ok: false, error: resendErr.message });
   }
