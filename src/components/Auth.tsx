@@ -143,6 +143,21 @@ export function Auth() {
           return;
         }
 
+        // NEW: user exists in Auth (likely unconfirmed) → resend confirmation
+        if (result?.alreadyAuth) {
+          // surface the “Confirmation email sent” banner UI
+          setShowConfirmBanner(true);
+          setError(null);
+          setInfoMsg(null);
+
+          // fire your existing serverless resend call
+          await resendConfirmation();
+
+          // optionally switch UI to Sign in so they know to log in after confirming
+          setIsLogin(true);
+          return;
+        }
+
         if (result?.ok && result?.sent) {
           // Invite/confirmation email sent
           setShowConfirmBanner(true);
