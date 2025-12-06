@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   role: 'tenant' | 'admin';
-  apartment_number?: string;
+
   created_at: string;
 }
 
@@ -11,7 +11,7 @@ export interface Request {
   tenant_id: string;
   tenant?: {
     email: string;
-    apartment_number?: string;
+   
   };
   type: RequestType;
   title: string;

@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text UNIQUE NOT NULL,
   role text NOT NULL DEFAULT 'tenant' CHECK (role IN ('tenant', 'admin')),
-  apartment_number text,
+  
   created_at timestamptz DEFAULT now()
 );
 

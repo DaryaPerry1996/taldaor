@@ -34,9 +34,9 @@ export function Layout({ children, title }: LayoutProps) {
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                   {profile?.role === 'admin' ? 'Admin' : 'Tenant'}
                 </span>
-                {profile?.role === 'tenant' && profile.apartment_number && (
+                {profile?.role === 'tenant'  && (
                   <span className="text-sm text-gray-500">
-                    Apt {profile.apartment_number}
+                   
                   </span>
                 )}
               </div>
