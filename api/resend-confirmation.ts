@@ -57,14 +57,14 @@ export default async function handler(req: any, res: any) {
 
   const base = process.env.APP_BASE_URL || process.env.SITE_URL; // support either var
   const emailRedirectTo = base ? `${base}/?confirmed=1` : undefined;
-  const resetRedirectTo = base ? `${base}/reset` : emailRedirectTo; // tweak to your route
+  const resetRedirectTo = base ? `${base}/reset-done` : undefined; // tweak to your route
 
   // 3) If already confirmed, tell the client to show a helpful message
 
   // 3) If already confirmed → send PASSWORD RESET instead of bailing
   if (user?.email_confirmed_at || user?.confirmed_at) {
     const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: resetRedirectTo, // fallback if you don't have a dedicated reset page
+      redirectTo: resetRedirectTo || emailRedirectTo, // fallback if you don't have a dedicated reset page
     });
 
     if (resetErr) {
