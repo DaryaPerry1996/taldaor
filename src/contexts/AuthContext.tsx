@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, apartmentNumber?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -34,7 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -73,30 +75,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
-  const signUp = async (email: string, password: string, apartmentNumber?: string) => {
+  const signUp = async (email: string, password: string) => {
+    // 🔹 Normalize email (so it matches how it's stored in approved_emails)
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 🔹 1. Check if the email is in approved_emails
+    const { data: approvalRecord, error: approvalError } = await supabase
+      .from('approved_emails')
+      .select('admin')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (approvalError) {
+      console.error('Error checking approved_emails:', approvalError);
+      return { error: approvalError };
+    }
+
+    // 🔹 2. If not found in approved_emails → block signup
+    if (!approvalRecord) {
+      const customError = { message: 'This email is not approved for signup.' };
+      return { error: customError };
+    }
+
+    // 🔹 3. Decide role based on the admin column
+    // if admin === true → 'admin', else 'tenant'
+    const role = approvalRecord.admin ? 'admin' : 'tenant';
+
+    // 🔹 4. Create the auth user with the correct role in metadata
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
-      options: { data: { role:'tenant'}},
+      options: {
+        data: { role }, // stored in user.user_metadata.role
+      },
     });
 
-    if (!error && data.user) {
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email,
-          role: 'tenant',
-        
-        });
+    if (error) {
+      return { error };
+    }
+
+    // 🔹 5. Insert corresponding profile row with the same role
+    if (data.user) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        email: normalizedEmail,
+        role,
+      });
 
       if (profileError) {
         console.error('Error creating profile:', profileError);
+        return { error: profileError };
       }
     }
 
-    return { error };
+    return { error: null };
   };
 
   const signOut = async () => {
