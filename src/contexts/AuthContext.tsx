@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🔹 1. Check if the email is in approved_emails
     const { data: approvalRecord, error: approvalError } = await supabase
       .from('approved_emails')
-      .select('admin')
+      .select('Admin')
       .eq('email', normalizedEmail)
       .maybeSingle();
 
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 🔹 3. Decide role based on the admin column
     // if admin === true → 'admin', else 'tenant'
-    const role = approvalRecord.admin ? 'admin' : 'tenant';
+    const role = approvalRecord.Admin ? 'admin' : 'tenant';
 
     // 🔹 4. Create the auth user with the correct role in metadata
     const { data, error } = await supabase.auth.signUp({
