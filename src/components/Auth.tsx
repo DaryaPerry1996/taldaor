@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, Eye, EyeOff } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -37,41 +38,47 @@ export function Auth() {
 
   const normalizeEmail = (e: string) => e.trim().toLowerCase();
 
-  // Resend the confirmation email (serverless)
-  const resendConfirmation = async () => {
-    setLoading(true);
-    setError(null);
-    setInfoMsg(null);
+  // Resend the confirmation email using Supabase client (no custom API)
+const resendConfirmation = async () => {
+  setLoading(true);
+  setError(null);
+  setInfoMsg(null);
 
-    try {
-      const cleanEmail = normalizeEmail(email);
-      const resp = await fetch('/api/resend-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail }),
-      });
-      const result = await resp.json();
+  try {
+    const cleanEmail = normalizeEmail(email);
 
-      if (result?.ok && result?.resent) {
-        setInfoMsg('We’ve sent another confirmation email. Please check your inbox (and spam).');
-      } else if (result?.reason === 'already_confirmed') {
+    // Supabase built-in resend
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: cleanEmail,
+      options: {
+        // match your signup redirect (?confirmed=1)
+        emailRedirectTo: `${window.location.origin}/?confirmed=1`,
+      },
+    });
+
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+
+      // Common cases: no such user / already confirmed / generic error
+      if (msg.includes('not found') || msg.includes('user')) {
+        setError('No account found for this email. Please sign up first.');
+      } else if (msg.includes('already') && msg.includes('confirmed')) {
         setInfoMsg('Your email is already confirmed. Please sign in with your password.');
         setIsLogin(true);
-      } else if (result?.reason === 'not_on_allowlist') {
-        setError('Your email is not approved, contact Taldaor for approval');
-      } else if (result?.reason === 'no_auth_user') {
-        setError('No account found for this email. Please sign up first.');
-      } else if (result?.error) {
-        setError(`Server error: ${result.error}`);
       } else {
-        setError('Could not resend the confirmation email right now.');
+        setError(`Could not resend confirmation email: ${error.message}`);
       }
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not resend the confirmation email.');
-    } finally {
-      setLoading(false);
+    } else {
+      setInfoMsg('We’ve sent another confirmation email. Please check your inbox (and spam).');
     }
-  };
+  } catch (e: any) {
+    setError(e?.message ?? 'Could not resend the confirmation email.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Send password reset (only if profile exists; server enforces this)
   const sendPasswordReset = async () => {
