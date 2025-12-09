@@ -27,8 +27,7 @@ export function RequestManagement() {
         .select(`
           *,
           tenant:profiles!requests_tenant_id_fkey (
-            email,
-            apartment_number
+            email
           )
         `)
         .order('created_at', { ascending: false });
@@ -271,10 +270,7 @@ const handleStatusUpdate = async () => {
                         <span className="font-medium">Tenant:</span>
                         <span>{request.tenant?.email}</span>
                       </span>
-                      <span className="flex items-center space-x-1">
-                        <span className="font-medium">Apartment:</span>
-                        <span>{request.tenant?.apartment_number || 'N/A'}</span>
-                      </span>
+                     
                       <span className="flex items-center space-x-1">
                         <span className="font-medium">Created:</span>
                         <span>{new Date(request.created_at).toLocaleDateString()}</span>

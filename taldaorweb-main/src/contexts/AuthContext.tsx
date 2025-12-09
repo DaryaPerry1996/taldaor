@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: data.user.id,
           email,
           role: 'tenant',
-          apartment_number: apartmentNumber ?? null,
+       
         });
 
       if (profileError) {

@@ -70,21 +70,21 @@ export interface Database {
           id: string;
           email: string;
           role: string;
-          apartment_number: string | null;
+         
           created_at: string;
         };
         Insert: {
           id: string;
           email: string;
           role?: string;
-          apartment_number?: string | null;
+         
           created_at?: string;
         };
         Update: {
           id?: string;
           email?: string;
           role?: string;
-          apartment_number?: string | null;
+       
           created_at?: string;
         };
       };
