@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -7,13 +7,11 @@ export function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [apartmentNumber, setApartmentNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
- 
 
   const [showConfirmBanner, setShowConfirmBanner] = useState(false);
-   const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
   const { signIn, signUp } = useAuth();
@@ -34,7 +32,6 @@ export function Auth() {
     }
   }, []);
 
-  // Helper: detect “email not confirmed” style error from Supabase
   const looksLikeUnconfirmed = (err: any) =>
     typeof err?.message === 'string' &&
     /confirm|confirmation|not.*verified|not.*confirmed/i.test(err.message);
@@ -83,6 +80,38 @@ const resendConfirmation = async () => {
 };
 
 
+  // Send password reset (only if profile exists; server enforces this)
+  const sendPasswordReset = async () => {
+    setLoading(true);
+    setError(null);
+    setInfoMsg(null);
+    try {
+      const cleanEmail = normalizeEmail(email);
+      const resp = await fetch('/api/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      const result = await resp.json();
+
+      if (result?.ok && result?.resetSent) {
+        setInfoMsg('We’ve sent a password reset link to your email.');
+      } else if (result?.reason === 'no_profile') {
+        setError('No profile found for that email.');
+      } else if (result?.reason === 'no_auth_user') {
+        setError('This email is registered in Taldaor but not yet activated. Please sign up first or contact support.');
+      } else if (result?.error) {
+        setError(`Server error: ${result.error}`);
+      } else {
+        setError('Could not send the reset email.');
+      }
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not send the reset email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -90,12 +119,13 @@ const resendConfirmation = async () => {
     setInfoMsg(null);
     setShowConfirmBanner(false);
 
-   try {
+    try {
+      const cleanEmail = normalizeEmail(email);
+
       if (isLogin) {
         // LOGIN
         const { error } = await signIn(cleanEmail, password);
         if (error) {
-          // If user tries to log in before confirming, show the friendly banner
           if (looksLikeUnconfirmed(error)) {
             setShowConfirmBanner(true);
             return; // handled by banner + resend button
@@ -157,16 +187,16 @@ const resendConfirmation = async () => {
             {isLogin ? 'Sign in to your account' : 'Create your account'}
           </p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="bg-white p-8 rounded-lg shadow-md space-y-6">
 
-            {/* ✅ Friendly confirmation banner */}
+            {/* Confirmation sent banner */}
             {showConfirmBanner && (
               <div className="border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 rounded-md text-sm">
                 <p className="font-medium mb-1">Confirmation email sent</p>
                 <p className="mb-3">
-                  We’ve sent a confirmation link to <span className="font-mono">{email}</span>.
+                  We’ve sent a confirmation link to <span className="font-mono">{normalizeEmail(email)}</span>.
                   Please check your inbox (and spam) to complete your sign up.
                 </p>
                 <button
@@ -180,20 +210,21 @@ const resendConfirmation = async () => {
               </div>
             )}
 
-            {/* Info banner (e.g., after resend) */}
+            {/* Info banner */}
             {infoMsg && (
               <div className="border border-blue-200 bg-blue-50 text-blue-800 px-4 py-3 rounded-md text-sm">
                 {infoMsg}
               </div>
             )}
 
-            {/* Error banner (only show if not showing the confirm banner) */}
+            {/* Error banner */}
             {error && !showConfirmBanner && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
                 {error}
               </div>
             )}
 
+            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -257,6 +288,7 @@ const resendConfirmation = async () => {
               </div>
             )}
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -265,6 +297,7 @@ const resendConfirmation = async () => {
               {loading ? 'Please wait...' : (isLogin ? 'Sign in' : 'Sign up')}
             </button>
 
+            {/* Toggle */}
             <div className="text-center">
               <button
                 type="button"

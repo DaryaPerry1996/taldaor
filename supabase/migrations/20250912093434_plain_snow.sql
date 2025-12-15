@@ -12,6 +12,12 @@
     - Fixed all policies that were causing infinite recursion
 */
 
+-- Drop existing policies that cause recursion
+DROP POLICY IF EXISTS "Admins can read all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins can read all requests" ON requests;
+DROP POLICY IF EXISTS "Admins can update all requests" ON requests;
+DROP POLICY IF EXISTS "Admins can insert all logs" ON request_logs;
+DROP POLICY IF EXISTS "Admins can read all logs" ON request_logs;
 
 -- Create simplified policies for profiles table
 CREATE POLICY "Users can read own profile"

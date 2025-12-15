@@ -91,8 +91,16 @@ CREATE POLICY "Users can insert own profile"
   TO authenticated
   WITH CHECK (auth.uid() = id);
 
-
- 
+CREATE POLICY "Admins can read all profiles"
+  ON profiles
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- Requests policies
 CREATE POLICY "Tenants can read own requests"
@@ -113,6 +121,27 @@ CREATE POLICY "Tenants can update own requests"
   TO authenticated
   USING (tenant_id = auth.uid());
 
+CREATE POLICY "Admins can read all requests"
+  ON requests
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "Admins can update all requests"
+  ON requests
+  FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- Request logs policies
 CREATE POLICY "Users can read logs for own requests"
@@ -132,6 +161,27 @@ CREATE POLICY "Users can insert logs for own requests"
   TO authenticated
   WITH CHECK (created_by = auth.uid());
 
+CREATE POLICY "Admins can read all logs"
+  ON request_logs
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "Admins can insert all logs"
+  ON request_logs
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
