@@ -70,7 +70,7 @@ export interface Database {
           id: string;
           email: string;
           role: string;
-          
+         
           created_at: string;
         };
         Insert: {
@@ -84,7 +84,7 @@ export interface Database {
           id?: string;
           email?: string;
           role?: string;
-          
+       
           created_at?: string;
         };
       };

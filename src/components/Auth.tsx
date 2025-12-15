@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, Eye, EyeOff } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,29 +18,70 @@ export function Auth() {
 
   const { signIn, signUp } = useAuth();
 
+  // Prefill email and handle return from hosted confirm page
+  useEffect(() => {
+    const cached = localStorage.getItem('signup_email');
+    if (cached) setEmail(cached);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('confirmed') === '1') {
+      setIsLogin(true);
+      setShowConfirmBanner(false);
+      setInfoMsg('Your email is confirmed. You can now sign in with your email and password.');
+      localStorage.removeItem('signup_email');
+      // Clean the URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   // Helper: detect “email not confirmed” style error from Supabase
   const looksLikeUnconfirmed = (err: any) =>
     typeof err?.message === 'string' &&
     /confirm|confirmation|not.*verified|not.*confirmed/i.test(err.message);
 
-  // Resend the confirmation email to the typed address
-  const resendConfirmation = async () => {
-    setLoading(true);
-    setError(null);
-    setInfoMsg(null);
-    try {
-      const { error: resendErr } = await supabase.auth.resend({
-        type: 'signup', // resend the confirmation email
-        email,          // to the email in the input
-      });
-      if (resendErr) throw resendErr;
+  const normalizeEmail = (e: string) => e.trim().toLowerCase();
+
+  // Resend the confirmation email using Supabase client 
+const resendConfirmation = async () => {
+  setLoading(true);
+  setError(null);
+  setInfoMsg(null);
+
+  try {
+    const cleanEmail = normalizeEmail(email);
+
+    // Supabase built-in resend
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: cleanEmail,
+      options: {
+        // match your signup redirect (?confirmed=1)
+        emailRedirectTo: `${window.location.origin}/?confirmed=1`,
+      },
+    });
+
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+
+      // Common cases: no such user / already confirmed / generic error
+      if (msg.includes('not found') || msg.includes('user')) {
+        setError('No account found for this email. Please sign up first.');
+      } else if (msg.includes('already') && msg.includes('confirmed')) {
+        setInfoMsg('Your email is already confirmed. Please sign in with your password.');
+        setIsLogin(true);
+      } else {
+        setError(`Could not resend confirmation email: ${error.message}`);
+      }
+    } else {
       setInfoMsg('We’ve sent another confirmation email. Please check your inbox (and spam).');
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not resend the confirmation email.');
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (e: any) {
+    setError(e?.message ?? 'Could not resend the confirmation email.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,22 +92,51 @@ export function Auth() {
 
    try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        // LOGIN
+        const { error } = await signIn(cleanEmail, password);
         if (error) {
           // If user tries to log in before confirming, show the friendly banner
           if (looksLikeUnconfirmed(error)) {
             setShowConfirmBanner(true);
-            return; // don’t rethrow, we handled it
+            return; // handled by banner + resend button
           }
           throw error;
         }
       } else {
-        // SIGN UP: on success, show friendly banner
-        const { error } = await signUp(email, password, apartmentNumber);
-        if (error) throw error;
+        // SIGN UP: use AuthContext.signUp (checks approved_emails, assigns role, creates profile)
+        localStorage.setItem('signup_email', cleanEmail);
 
-        // ✅ Signup request accepted — Supabase has emailed a confirmation link.
+        const { error } = await signUp(cleanEmail, password);
+
+        if (error) {
+          const msg = String(error.message || '').toLowerCase();
+
+          // Custom allowlist error from signUp
+          if (msg.includes('not approved for signup')) {
+            setShowConfirmBanner(false);
+            setInfoMsg(null);
+            setError('Your email is not approved, contact Taldaor for approval');
+            return;
+          }
+
+          // Typical "already registered" error from Supabase
+          if (msg.includes('already registered') || msg.includes('user already exists')) {
+            setShowConfirmBanner(false);
+            setInfoMsg('This email is already registered. Please sign in or reset your password.');
+            setIsLogin(true);
+            return;
+          }
+
+          // Anything else → generic
+          throw error;
+        }
+
+        // If signUp succeeded:
+        // Supabase will send them a confirmation email if email confirmation is enabled.
         setShowConfirmBanner(true);
+        setError(null);
+        setInfoMsg(null);
+        setIsLogin(true);
       }
     } catch (err: any) {
       setError(err?.message ?? 'Something went wrong.');
@@ -140,9 +211,7 @@ export function Auth() {
               />
             </div>
 
-
-            
-
+            {/* Password: used for both sign-in and sign-up */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
@@ -152,12 +221,12 @@ export function Auth() {
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter your password"
+                  placeholder={isLogin ? 'Enter your password' : 'Choose a password'}
                 />
                 <button
                   type="button"
@@ -173,21 +242,19 @@ export function Auth() {
               </div>
             </div>
 
-            {!isLogin && (
-                <div>
-                    <label htmlFor="apartment" className="block text-sm font-medium text-gray-700">
-                      Apartment Number
-                    </label>
-                    <input
-                      id="apartment"
-                      name="apartment"
-                      type="text"
-                      value={apartmentNumber}
-                      onChange={(e) => setApartmentNumber(e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., 101, 2A, etc."
-                    />
-                  </div>
+            {/* Forgot password: only in login mode */}
+            {isLogin && (
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={sendPasswordReset}
+                  className="text-sm text-blue-600 hover:text-blue-500"
+                  disabled={loading || !email}
+                  title={!email ? 'Enter your email first' : ''}
+                >
+                  Forgot your password?
+                </button>
+              </div>
             )}
 
             <button

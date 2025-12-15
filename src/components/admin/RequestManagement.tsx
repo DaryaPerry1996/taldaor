@@ -270,6 +270,7 @@ const handleStatusUpdate = async () => {
                         <span className="font-medium">Tenant:</span>
                         <span>{request.tenant?.email}</span>
                       </span>
+                     
                       <span className="flex items-center space-x-1">
                         <span className="font-medium">Created:</span>
                         <span>{new Date(request.created_at).toLocaleDateString()}</span>

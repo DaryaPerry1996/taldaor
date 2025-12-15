@@ -11,7 +11,7 @@ export interface Request {
   tenant_id: string;
   tenant?: {
     email: string;
-   
+  
   };
   type: RequestType;
   title: string;
