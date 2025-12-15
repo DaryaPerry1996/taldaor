@@ -38,7 +38,7 @@ export function Auth() {
 
   const normalizeEmail = (e: string) => e.trim().toLowerCase();
 
-  // Resend the confirmation email using Supabase client (no custom API)
+  // Resend the confirmation email using Supabase client 
 const resendConfirmation = async () => {
   setLoading(true);
   setError(null);

@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🔹 1. Check if the email is in approved_emails
     const { data: approvalRecord, error: approvalError } = await supabase
       .from('approved_emails')
-      .select('Admin')
+      .select('Admin')//why check admin column here?
       .eq('email', normalizedEmail)
       .maybeSingle();
 
@@ -113,14 +113,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       return { error };
     }
-
+    
+    
     // 🔹 5. Insert corresponding profile row with the same role
     if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        email: normalizedEmail,
-        role,
-      });
+      const { error: profileError } = await supabase.from('profiles').upsert(
+  { id: data.user.id, email: normalizedEmail, role },
+  { onConflict: 'id' }
+);
 
       if (profileError) {
         console.error('Error creating profile:', profileError);
