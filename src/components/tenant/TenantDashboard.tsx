@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../Layout';
-import { NewRequestForm } from './NewRequestForm';
+import { NewRequestForm } from '../shared/NewRequestForm';
 import { MyRequests } from './MyRequests';
 import { Plus, List } from 'lucide-react';
 

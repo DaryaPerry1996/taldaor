@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Layout } from '../Layout';
 import { RequestManagement } from './RequestManagement';
 import { RequestLogs } from './RequestLogs';
-import { Settings, FileText } from 'lucide-react';
+import { NewRequestForm } from '../shared/NewRequestForm';
+import { Settings, FileText, PlusCircle } from 'lucide-react';
 
-type ActiveTab = 'requests' | 'logs';
+type ActiveTab = 'requests' | 'logs' | 'new';
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('requests');
@@ -27,6 +28,19 @@ export function AdminDashboard() {
                 <Settings className="inline-block w-4 h-4 mr-2" />
                 Request Management
               </button>
+
+              <button
+                onClick={() => setActiveTab('new')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  activeTab === 'new'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <PlusCircle className="inline-block w-4 h-4 mr-2" />
+                New Request
+              </button>
+
               <button
                 onClick={() => setActiveTab('logs')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
@@ -43,8 +57,14 @@ export function AdminDashboard() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'requests' && <RequestManagement />}
-        {activeTab === 'logs' && <RequestLogs />}
+{activeTab === 'requests' && <RequestManagement />}
+
+{activeTab === 'new' && (
+  <NewRequestForm onSuccess={() => setActiveTab('requests')} />
+)}
+
+{activeTab === 'logs' && <RequestLogs />}
+
       </div>
     </Layout>
   );
