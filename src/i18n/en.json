@@ -150,5 +150,22 @@
     "submitting": "Submitting…",
     "successTitle": "Request submitted!",
     "successSubtitle": "Your request has been submitted successfully. You will be redirected shortly."
+  },
+  "tenant": {
+    "dashboardTitle": "Tenant Dashboard",
+    "tabs": {
+      "myRequests": "My Requests",
+      "newRequest": "New Request"
+    }
+  },
+  "tenantRequests": {
+    "title": "My Requests",
+    "subtitle": "Track the status of your maintenance requests.",
+    "errorLoading": "Error loading requests: {{error}}",
+    "emptyTitle": "No requests yet",
+    "emptySubtitle": "You haven't submitted any maintenance requests yet.",
+    "type": "Type:",
+    "created": "Created:",
+    "updated": "Updated:"
   }
 }

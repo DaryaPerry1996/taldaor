@@ -150,5 +150,22 @@
     "submitting": "שולח/ת…",
     "successTitle": "הפנייה נשלחה!",
     "successSubtitle": "הפנייה נשלחה בהצלחה. בעוד רגע תועברי לצפייה בפניות."
+  },
+  "tenant": {
+    "dashboardTitle": "לוח דיירים",
+    "tabs": {
+      "myRequests": "הפניות שלי",
+      "newRequest": "פנייה חדשה"
+    }
+  },
+  "tenantRequests": {
+    "title": "הפניות שלי",
+    "subtitle": "מעקב אחר סטטוס הפניות שלך.",
+    "errorLoading": "שגיאה בטעינת הפניות: {{error}}",
+    "emptyTitle": "אין עדיין פניות",
+    "emptySubtitle": "עדיין לא שלחת פניות תחזוקה.",
+    "type": "סוג:",
+    "created": "נוצר:",
+    "updated": "עודכן:"
   }
 }

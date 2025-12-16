@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Layout } from '../Layout';
 import { NewRequestForm } from '../shared/NewRequestForm';
 import { MyRequests } from './MyRequests';
 import { Plus, List } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type ActiveTab = 'requests' | 'new-request';
 
 export function TenantDashboard() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ActiveTab>('requests');
 
   return (
-    <Layout title="Tenant Dashboard">
+    <Layout title={t('tenant.dashboardTitle')}>
       <div className="space-y-6">
         {/* Navigation Tabs */}
         <div className="bg-white rounded-lg shadow-sm">
@@ -25,8 +27,9 @@ export function TenantDashboard() {
                 }`}
               >
                 <List className="inline-block w-4 h-4 mr-2" />
-                My Requests
+                {t('tenant.tabs.myRequests')}
               </button>
+
               <button
                 onClick={() => setActiveTab('new-request')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
@@ -36,7 +39,7 @@ export function TenantDashboard() {
                 }`}
               >
                 <Plus className="inline-block w-4 h-4 mr-2" />
-                New Request
+                {t('tenant.tabs.newRequest')}
               </button>
             </nav>
           </div>
