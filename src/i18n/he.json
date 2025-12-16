@@ -110,6 +110,20 @@
     "notesOptional": "הערות (אופציונלי)",
     "notesPlaceholder": "הוסיפי הערות לגבי עדכון הסטטוס…",
     "updateStatus": "עדכן סטטוס"
+  },
+  "newRequest": {
+    "title": "שליחת פנייה חדשה",
+    "subtitle": "מלאי את הטופס כדי לשלוח פנייה לתחזוקה.",
+    "requestType": "סוג פנייה",
+    "priority": "דחיפות",
+    "titleLabel": "כותרת",
+    "titlePlaceholder": "תיאור קצר של הבעיה",
+    "description": "תיאור",
+    "descriptionPlaceholder": "פרטי מידע על הבעיה, מיקום וכל מידע רלוונטי נוסף…",
+    "submit": "שלח/י פנייה",
+    "submitting": "שולח/ת…",
+    "successTitle": "הפנייה נשלחה!",
+    "successSubtitle": "הפנייה נשלחה בהצלחה. בעוד רגע תועברי לצפייה בפניות."
   }
 
 
