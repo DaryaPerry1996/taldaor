@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -12,7 +12,7 @@ export function Auth() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Loading states
+  // Loading states (separate so buttons don't fight each other)
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [loadingResend, setLoadingResend] = useState(false);
   const [loadingReset, setLoadingReset] = useState(false);
@@ -21,7 +21,7 @@ export function Auth() {
   const [error, setError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
-  // Banner for "unconfirmed email on login"
+  // Banner for "unconfirmed email on login" (resend option)
   const [showUnconfirmedBanner, setShowUnconfirmedBanner] = useState(false);
 
   const normalizeEmail = (e: string) => e.trim().toLowerCase();
@@ -31,6 +31,12 @@ export function Auth() {
     setInfoMsg(null);
     setShowUnconfirmedBanner(false);
   };
+
+  // Prefill cached signup email (UX only — not security related)
+  useEffect(() => {
+    const cached = localStorage.getItem('signup_email');
+    if (cached) setEmail(cached);
+  }, []);
 
   // Detect Supabase "email not confirmed" type errors (text-based, can vary)
   const looksLikeUnconfirmed = (err: any) =>
@@ -48,7 +54,7 @@ export function Auth() {
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: cleanEmail,
-        // optional:
+        // optional: if you want to control where the user lands after clicking the confirm link
         // options: { emailRedirectTo: `${window.location.origin}/` },
       });
 
@@ -57,6 +63,7 @@ export function Auth() {
         return;
       }
 
+      // Security-friendly generic message (don’t leak whether user exists)
       setInfoMsg(
         'If this email is registered and not yet confirmed, we sent a new confirmation email. Check inbox/spam.'
       );
@@ -84,6 +91,7 @@ export function Auth() {
         return;
       }
 
+      // Generic message is best practice (don’t leak if account exists)
       setInfoMsg('If an account exists for this email, we sent a password reset link.');
     } catch (e: any) {
       setError(e?.message ?? 'Could not send the reset email.');
@@ -111,7 +119,10 @@ export function Auth() {
           throw error;
         }
       } else {
-        // SIGN UP
+        // SIGN UP (your AuthContext.signUp calls supabase.auth.signUp;
+        // approval + role assignment + profile creation happen server-side via your hook/trigger)
+        localStorage.setItem('signup_email', cleanEmail);
+
         const { error } = await signUp(cleanEmail, password);
 
         if (error) {
@@ -131,9 +142,8 @@ export function Auth() {
           throw error;
         }
 
-        // Success: Supabase will send confirmation email if required.
-        // If Supabase auto-signs-in after confirmation, user will become logged in after clicking link.
-        setInfoMsg('Signup successful. Please check your email to confirm your account.');
+        // Success → Supabase will send confirmation email (if confirmation is enabled)
+        setInfoMsg('Signup successful. Please check your email to confirm your account before signing in.');
         setIsLogin(true);
         setPassword('');
       }
@@ -164,7 +174,7 @@ export function Auth() {
               <div className="border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 rounded-md text-sm">
                 <p className="font-medium mb-1">Email not confirmed</p>
                 <p className="mb-3">
-                  This account exists but the email is not confirmed yet. Please check your inbox (and spam).
+                  This account exists but the email is not confirmed yet. Please check your inbox (and spam) for the confirmation email.
                 </p>
                 <button
                   type="button"
