@@ -74,62 +74,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return { error };
   };
+const signUp = async (email: string, password: string) => {
+  const normalizedEmail = email.trim().toLowerCase();
 
-  const signUp = async (email: string, password: string) => {
-    // 🔹 Normalize email (so it matches how it's stored in approved_emails)
-    const normalizedEmail = email.trim().toLowerCase();
+  const res = await fetch('/api/signup-approved', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: normalizedEmail, password }),
+  });
 
-    // 🔹 1. Check if the email is in approved_emails
-    const { data: approvalRecord, error: approvalError } = await supabase
-      .from('approved_emails')
-      .select('Admin')//why check admin column here?
-      .eq('email', normalizedEmail)
-      .maybeSingle();
+  const payload = await res.json().catch(() => ({}));
 
-    if (approvalError) {
-      console.error('Error checking approved_emails:', approvalError);
-      return { error: approvalError };
-    }
+  if (!res.ok) {
+    return { error: { message: payload?.error ?? 'Signup failed' } };
+  }
 
-    // 🔹 2. If not found in approved_emails → block signup
-    if (!approvalRecord) {
-      const customError = { message: 'This email is not approved for signup.' };
-      return { error: customError };
-    }
+  // keep your current UX: user confirms email, then logs in normally
+  return { error: null };
+};
 
-    // 🔹 3. Decide role based on the admin column
-    // if admin === true → 'admin', else 'tenant'
-    const role = approvalRecord.Admin ? 'admin' : 'tenant';
-
-    // 🔹 4. Create the auth user with the correct role in metadata
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: {
-        data: { role }, // stored in user.user_metadata.role
-      },
-    });
-
-    if (error) {
-      return { error };
-    }
-    
-    
-    // 🔹 5. Insert corresponding profile row with the same role
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').upsert(
-  { id: data.user.id, email: normalizedEmail, role },
-  { onConflict: 'id' }
-);
-
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        return { error: profileError };
-      }
-    }
-
-    return { error: null };
-  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
