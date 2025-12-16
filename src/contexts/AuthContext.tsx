@@ -77,22 +77,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 const signUp = async (email: string, password: string) => {
   const normalizedEmail = email.trim().toLowerCase();
 
-  const res = await fetch('/api/signup-approved', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: normalizedEmail, password }),
+  const { data, error } = await supabase.auth.signUp({
+    email: normalizedEmail,
+    password,
+    // IMPORTANT: do NOT set role here anymore
+    // The hook + trigger will enforce approval + role assignment server-side.
   });
 
-  const payload = await res.json().catch(() => ({}));
+  if (error) return { error };
 
-  if (!res.ok) {
-    return { error: { message: payload?.error ?? 'Signup failed' } };
-  }
+  // Optional: cache email like you already do (helps UX after confirm)
+  localStorage.setItem('signup_email', normalizedEmail);
 
-  // keep your current UX: user confirms email, then logs in normally
+  // At this point:
+  // - If email isn't approved, the hook rejects and you'll get an error above.
+  // - If approved, Supabase creates auth user.
+  // - Then the AFTER INSERT trigger creates/upserts profiles with the role from approved_emails.
   return { error: null };
 };
-
 
   const signOut = async () => {
     await supabase.auth.signOut();
