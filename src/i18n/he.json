@@ -16,9 +16,11 @@
     "admin": "מנהל",
     "tenant": "דייר"
   },
-
   "status": {
     "pending": "ממתין",
+    "in_progress": "בטיפול",
+    "completed": "הושלם",
+    "cancelled": "בוטל",
     "approved": "אושר",
     "rejected": "נדחה"
   },
@@ -64,6 +66,52 @@
     "notApproved": "האימייל שלך לא מאושר. צרי קשר עם Taldaor כדי לקבל אישור.",
     "alreadyRegistered": "האימייל כבר רשום. התחברי או בצעי איפוס סיסמה.",
     "genericError": "משהו השתבש."
+  },
+  "admin": {
+    "dashboardTitle": "לוח ניהול"
+  },
+  "logs": {
+    "title": "יומן פניות",
+    "subtitle": "היסטוריה מלאה של כל שינויי הסטטוס בפניות.",
+    "emptyTitle": "אין עדיין רשומות",
+    "emptySubtitle": "עדיין לא נרשמו שינויים בסטטוס הפניות.",
+    "errorLoading": "שגיאה בטעינת היומן: {{error}}",
+    "requestPrefix": "פנייה",
+    "updatedBy": "עודכן ע\"י:",
+    "time": "זמן:",
+    "at": "בשעה"
+  },
+  
+  "common": {
+    "cancel": "ביטול"
+  },
+  "priority": {
+    "low": "נמוכה",
+    "medium": "בינונית",
+    "high": "גבוהה",
+    "urgent": "דחופה"
+  },
+  "requests": {
+    "errorLoading": "שגיאה בטעינת הפניות: {{error}}",
+    "total": "סה״כ פניות",
+    "allTitle": "כל הפניות",
+    "allSubtitle": "ניהול ועדכון פניות תחזוקה.",
+    "allStatuses": "כל הסטטוסים",
+    "noneTitle": "לא נמצאו פניות",
+    "noneSubtitle": "אין פניות שמתאימות לסינון הנוכחי.",
+    "type": "סוג:",
+    "tenant": "דייר/ת:",
+    "created": "נוצר:",
+    "edit": "עריכה",
+    "updateModalTitle": "עדכון סטטוס פנייה",
+    "requestLabel": "פנייה",
+    "currentStatus": "סטטוס נוכחי:",
+    "newStatus": "סטטוס חדש",
+    "notesOptional": "הערות (אופציונלי)",
+    "notesPlaceholder": "הוסיפי הערות לגבי עדכון הסטטוס…",
+    "updateStatus": "עדכן סטטוס"
   }
+
+
 
 }

@@ -4,19 +4,21 @@ import { RequestManagement } from './RequestManagement';
 import { RequestLogs } from './RequestLogs';
 import { NewRequestForm } from '../shared/NewRequestForm';
 import { Settings, FileText, PlusCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type ActiveTab = 'requests' | 'logs' | 'new';
 
 export function AdminDashboard() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ActiveTab>('requests');
 
   return (
-    <Layout title="Admin Dashboard">
+    <Layout title={t('admin.dashboardTitle')}>
       <div className="space-y-6">
         {/* Navigation Tabs */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6">
+            <nav className="-mb-px flex gap-8 px-6">
               <button
                 onClick={() => setActiveTab('requests')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
@@ -25,8 +27,8 @@ export function AdminDashboard() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <Settings className="inline-block w-4 h-4 mr-2" />
-                Request Management
+                <Settings className="inline-block w-4 h-4 ml-2 align-[-2px]" />
+                {t('tabs.requests')}
               </button>
 
               <button
@@ -37,8 +39,8 @@ export function AdminDashboard() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <PlusCircle className="inline-block w-4 h-4 mr-2" />
-                New Request
+                <PlusCircle className="inline-block w-4 h-4 ml-2 align-[-2px]" />
+                {t('tabs.newRequest')}
               </button>
 
               <button
@@ -49,22 +51,19 @@ export function AdminDashboard() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <FileText className="inline-block w-4 h-4 mr-2" />
-                Request Logs
+                <FileText className="inline-block w-4 h-4 ml-2 align-[-2px]" />
+                {t('tabs.logs')}
               </button>
             </nav>
           </div>
         </div>
 
         {/* Tab Content */}
-{activeTab === 'requests' && <RequestManagement />}
+        {activeTab === 'requests' && <RequestManagement />}
 
-{activeTab === 'new' && (
-  <NewRequestForm onSuccess={() => setActiveTab('requests')} />
-)}
+        {activeTab === 'new' && <NewRequestForm onSuccess={() => setActiveTab('requests')} />}
 
-{activeTab === 'logs' && <RequestLogs />}
-
+        {activeTab === 'logs' && <RequestLogs />}
       </div>
     </Layout>
   );
