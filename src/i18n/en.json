@@ -1,0 +1,25 @@
+{
+  "appTitle": "Apartment Building Management System",
+  "login": "Login",
+  "signup": "Sign up",
+  "email": "Email",
+  "password": "Password",
+  "logout": "Logout",
+
+  "tabs": {
+    "requests": "Requests",
+    "newRequest": "New Request",
+    "logs": "Logs"
+  },
+
+  "roles": {
+    "admin": "Admin",
+    "tenant": "Tenant"
+  },
+
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  }
+}

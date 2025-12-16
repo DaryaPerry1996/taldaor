@@ -1,0 +1,25 @@
+{
+  "appTitle": "מערכת ניהול בניין",
+  "login": "התחברות",
+  "signup": "הרשמה",
+  "email": "אימייל",
+  "password": "סיסמה",
+  "logout": "התנתקות",
+
+  "tabs": {
+    "requests": "פניות",
+    "newRequest": "פנייה חדשה",
+    "logs": "יומן"
+  },
+
+  "roles": {
+    "admin": "מנהל",
+    "tenant": "דייר"
+  },
+
+  "status": {
+    "pending": "ממתין",
+    "approved": "אושר",
+    "rejected": "נדחה"
+  }
+}

@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    direction: rtl;
+  }
+
+  body {
+    text-align: right;
+    /* optional: nicer Hebrew font if you have it loaded */
+    font-family: Heebo, Assistant, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+
+  input,
+  textarea {
+    text-align: right;
+  }
+
+  /* optional: if you use number/email inputs and want them LTR */
+  input[type="email"],
+  input[type="url"],
+  input[type="number"] {
+    direction: ltr;
+    text-align: left;
+  }
+}
