@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTranslation } from 'react-i18next';
 
 export function Auth() {
+  const { t } = useTranslation();
+
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,12 +28,11 @@ export function Auth() {
     if (params.get('confirmed') === '1') {
       setIsLogin(true);
       setShowConfirmBanner(false);
-      setInfoMsg('Your email is confirmed. You can now sign in with your email and password.');
+      setInfoMsg(t('auth.confirmedInfo'));
       localStorage.removeItem('signup_email');
-      // Clean the URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
+  }, [t]);
 
   const looksLikeUnconfirmed = (err: any) =>
     typeof err?.message === 'string' &&
@@ -38,47 +40,43 @@ export function Auth() {
 
   const normalizeEmail = (e: string) => e.trim().toLowerCase();
 
-  // Resend the confirmation email using Supabase client 
-const resendConfirmation = async () => {
-  setLoading(true);
-  setError(null);
-  setInfoMsg(null);
+  // Resend the confirmation email using Supabase client
+  const resendConfirmation = async () => {
+    setLoading(true);
+    setError(null);
+    setInfoMsg(null);
 
-  try {
-    const cleanEmail = normalizeEmail(email);
+    try {
+      const cleanEmail = normalizeEmail(email);
 
-    // Supabase built-in resend
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: cleanEmail,
-      options: {
-        // match your signup redirect (?confirmed=1)
-        emailRedirectTo: `${window.location.origin}/?confirmed=1`,
-      },
-    });
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/?confirmed=1`,
+        },
+      });
 
-    if (error) {
-      const msg = (error.message || '').toLowerCase();
+      if (error) {
+        const msg = (error.message || '').toLowerCase();
 
-      // Common cases: no such user / already confirmed / generic error
-      if (msg.includes('not found') || msg.includes('user')) {
-        setError('No account found for this email. Please sign up first.');
-      } else if (msg.includes('already') && msg.includes('confirmed')) {
-        setInfoMsg('Your email is already confirmed. Please sign in with your password.');
-        setIsLogin(true);
+        if (msg.includes('not found') || msg.includes('user')) {
+          setError(t('auth.noAccountFound'));
+        } else if (msg.includes('already') && msg.includes('confirmed')) {
+          setInfoMsg(t('auth.alreadyConfirmed'));
+          setIsLogin(true);
+        } else {
+          setError(t('auth.resendFailed', { message: error.message }));
+        }
       } else {
-        setError(`Could not resend confirmation email: ${error.message}`);
+        setInfoMsg(t('auth.resendSent'));
       }
-    } else {
-      setInfoMsg('We’ve sent another confirmation email. Please check your inbox (and spam).');
+    } catch (e: any) {
+      setError(e?.message ?? t('auth.resendGenericFail'));
+    } finally {
+      setLoading(false);
     }
-  } catch (e: any) {
-    setError(e?.message ?? 'Could not resend the confirmation email.');
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   // Send password reset (only if profile exists; server enforces this)
   const sendPasswordReset = async () => {
@@ -95,18 +93,18 @@ const resendConfirmation = async () => {
       const result = await resp.json();
 
       if (result?.ok && result?.resetSent) {
-        setInfoMsg('We’ve sent a password reset link to your email.');
+        setInfoMsg(t('auth.resetSent'));
       } else if (result?.reason === 'no_profile') {
-        setError('No profile found for that email.');
+        setError(t('auth.noProfile'));
       } else if (result?.reason === 'no_auth_user') {
-        setError('This email is registered in Taldaor but not yet activated. Please sign up first or contact support.');
+        setError(t('auth.noAuthUser'));
       } else if (result?.error) {
-        setError(`Server error: ${result.error}`);
+        setError(t('auth.serverError', { error: result.error }));
       } else {
-        setError('Could not send the reset email.');
+        setError(t('auth.resetFailed'));
       }
     } catch (e: any) {
-      setError(e?.message ?? 'Could not send the reset email.');
+      setError(e?.message ?? t('auth.resetGenericFail'));
     } finally {
       setLoading(false);
     }
@@ -123,17 +121,15 @@ const resendConfirmation = async () => {
       const cleanEmail = normalizeEmail(email);
 
       if (isLogin) {
-        // LOGIN
         const { error } = await signIn(cleanEmail, password);
         if (error) {
           if (looksLikeUnconfirmed(error)) {
             setShowConfirmBanner(true);
-            return; // handled by banner + resend button
+            return;
           }
           throw error;
         }
       } else {
-        // SIGN UP: use AuthContext.signUp (checks approved_emails, assigns role, creates profile)
         localStorage.setItem('signup_email', cleanEmail);
 
         const { error } = await signUp(cleanEmail, password);
@@ -141,35 +137,30 @@ const resendConfirmation = async () => {
         if (error) {
           const msg = String(error.message || '').toLowerCase();
 
-          // Custom allowlist error from signUp
           if (msg.includes('not approved for signup')) {
             setShowConfirmBanner(false);
             setInfoMsg(null);
-            setError('Your email is not approved, contact Taldaor for approval');
+            setError(t('auth.notApproved'));
             return;
           }
 
-          // Typical "already registered" error from Supabase
           if (msg.includes('already registered') || msg.includes('user already exists')) {
             setShowConfirmBanner(false);
-            setInfoMsg('This email is already registered. Please sign in or reset your password.');
+            setInfoMsg(t('auth.alreadyRegistered'));
             setIsLogin(true);
             return;
           }
 
-          // Anything else → generic
           throw error;
         }
 
-        // If signUp succeeded:
-        // Supabase will send them a confirmation email if email confirmation is enabled.
         setShowConfirmBanner(true);
         setError(null);
         setInfoMsg(null);
         setIsLogin(true);
       }
     } catch (err: any) {
-      setError(err?.message ?? 'Something went wrong.');
+      setError(err?.message ?? t('auth.genericError'));
     } finally {
       setLoading(false);
     }
@@ -180,24 +171,24 @@ const resendConfirmation = async () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Building2 className="mx-auto h-16 w-16 text-blue-600" />
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Building Management
-          </h2>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">{t('appTitle')}</h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isLogin ? 'Sign in to your account' : 'Create your account'}
+            {isLogin ? t('auth.signInSubtitle') : t('auth.signUpSubtitle')}
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="bg-white p-8 rounded-lg shadow-md space-y-6">
-
             {/* Confirmation sent banner */}
             {showConfirmBanner && (
               <div className="border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 rounded-md text-sm">
-                <p className="font-medium mb-1">Confirmation email sent</p>
+                <p className="font-medium mb-1">{t('auth.confirmationSentTitle')}</p>
                 <p className="mb-3">
-                  We’ve sent a confirmation link to <span className="font-mono">{normalizeEmail(email)}</span>.
-                  Please check your inbox (and spam) to complete your sign up.
+                  {t('auth.confirmationSentBody')}{' '}
+                  <span dir="ltr" className="font-mono">
+                    {normalizeEmail(email)}
+                  </span>
+                  .
                 </p>
                 <button
                   type="button"
@@ -205,7 +196,7 @@ const resendConfirmation = async () => {
                   disabled={loading}
                   className="inline-flex items-center px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {loading ? 'Sending…' : 'Resend confirmation email'}
+                  {loading ? t('auth.sending') : t('auth.resendConfirmation')}
                 </button>
               </div>
             )}
@@ -227,7 +218,7 @@ const resendConfirmation = async () => {
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+                {t('auth.emailLabel')}
               </label>
               <input
                 id="email"
@@ -238,14 +229,14 @@ const resendConfirmation = async () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your email"
+                placeholder={t('auth.emailPlaceholder')}
               />
             </div>
 
-            {/* Password: used for both sign-in and sign-up */}
+            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+                {t('auth.passwordLabel')}
               </label>
               <div className="mt-1 relative">
                 <input
@@ -257,12 +248,13 @@ const resendConfirmation = async () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={isLogin ? 'Enter your password' : 'Choose a password'}
+                  placeholder={isLogin ? t('auth.passwordPlaceholderLogin') : t('auth.passwordPlaceholderSignup')}
                 />
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400" />
@@ -273,7 +265,7 @@ const resendConfirmation = async () => {
               </div>
             </div>
 
-            {/* Forgot password: only in login mode */}
+            {/* Forgot password */}
             {isLogin && (
               <div className="flex items-center justify-end">
                 <button
@@ -281,9 +273,9 @@ const resendConfirmation = async () => {
                   onClick={sendPasswordReset}
                   className="text-sm text-blue-600 hover:text-blue-500"
                   disabled={loading || !email}
-                  title={!email ? 'Enter your email first' : ''}
+                  title={!email ? t('auth.enterEmailFirst') : ''}
                 >
-                  Forgot your password?
+                  {t('auth.forgotPassword')}
                 </button>
               </div>
             )}
@@ -294,7 +286,7 @@ const resendConfirmation = async () => {
               disabled={loading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
-              {loading ? 'Please wait...' : (isLogin ? 'Sign in' : 'Sign up')}
+              {loading ? t('auth.pleaseWait') : isLogin ? t('login') : t('signup')}
             </button>
 
             {/* Toggle */}
@@ -309,7 +301,7 @@ const resendConfirmation = async () => {
                 }}
                 className="text-blue-600 hover:text-blue-500 text-sm font-medium"
               >
-                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                {isLogin ? t('auth.toggleToSignup') : t('auth.toggleToLogin')}
               </button>
             </div>
           </div>

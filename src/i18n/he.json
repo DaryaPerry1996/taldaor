@@ -21,5 +21,49 @@
     "pending": "ממתין",
     "approved": "אושר",
     "rejected": "נדחה"
+  },
+    "auth": {
+    "signInSubtitle": "התחברי לחשבון שלך",
+    "signUpSubtitle": "צרי חשבון חדש",
+
+    "confirmedInfo": "האימייל שלך אומת. עכשיו אפשר להתחבר עם האימייל והסיסמה.",
+    "confirmationSentTitle": "נשלח אימייל אימות",
+    "confirmationSentBody": "שלחנו קישור אימות אל",
+    "resendConfirmation": "שליחה מחדש של אימייל אימות",
+    "sending": "שולח…",
+
+    "emailLabel": "כתובת אימייל",
+    "emailPlaceholder": "הכניסי את האימייל שלך",
+    "passwordLabel": "סיסמה",
+    "passwordPlaceholderLogin": "הכניסי את הסיסמה שלך",
+    "passwordPlaceholderSignup": "בחרי סיסמה",
+
+    "showPassword": "הצג סיסמה",
+    "hidePassword": "הסתר סיסמה",
+
+    "forgotPassword": "שכחת סיסמה?",
+    "enterEmailFirst": "קודם הכניסי אימייל",
+    "pleaseWait": "רגע…",
+
+    "toggleToSignup": "אין לך חשבון? הרשמה",
+    "toggleToLogin": "כבר יש לך חשבון? התחברות",
+
+    "noAccountFound": "לא נמצא חשבון עבור האימייל הזה. קודם בצעי הרשמה.",
+    "alreadyConfirmed": "האימייל כבר מאומת. אפשר להתחבר עם הסיסמה.",
+    "resendSent": "שלחנו שוב אימייל אימות. בדקי תיבת דואר נכנס (וגם ספאם).",
+    "resendFailed": "לא הצלחנו לשלוח שוב אימייל אימות: {{message}}",
+    "resendGenericFail": "לא הצלחנו לשלוח שוב אימייל אימות.",
+
+    "resetSent": "שלחנו קישור לאיפוס סיסמה לאימייל שלך.",
+    "noProfile": "לא נמצא פרופיל עבור האימייל הזה.",
+    "noAuthUser": "האימייל רשום ב-Taldaor אבל עדיין לא הופעל. בצעי הרשמה או צרי קשר עם התמיכה.",
+    "serverError": "שגיאת שרת: {{error}}",
+    "resetFailed": "לא הצלחנו לשלוח אימייל איפוס.",
+    "resetGenericFail": "לא הצלחנו לשלוח אימייל איפוס.",
+
+    "notApproved": "האימייל שלך לא מאושר. צרי קשר עם Taldaor כדי לקבל אישור.",
+    "alreadyRegistered": "האימייל כבר רשום. התחברי או בצעי איפוס סיסמה.",
+    "genericError": "משהו השתבש."
   }
+
 }
