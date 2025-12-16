@@ -104,9 +104,9 @@ export function NewRequestForm({ onSuccess }: NewRequestFormProps) {
               onChange={(e) => setFormData({ ...formData, type: e.target.value as RequestType })}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              {Object.entries(REQUEST_TYPES).map(([value, label]) => (
+              {Object.keys(REQUEST_TYPES).map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(`requestTypes.${value}`)}
                 </option>
               ))}
             </select>
@@ -122,9 +122,9 @@ export function NewRequestForm({ onSuccess }: NewRequestFormProps) {
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as RequestPriority })}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+              {Object.keys(PRIORITY_LABELS).map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(`priority.${value}`)}
                 </option>
               ))}
             </select>

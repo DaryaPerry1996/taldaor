@@ -19,7 +19,136 @@
 
   "status": {
     "pending": "Pending",
+    "in_progress": "In Progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
     "approved": "Approved",
     "rejected": "Rejected"
+  },
+
+  "requestTypes": {
+    "trash_removal": "Trash Removal",
+    "elevator": "Broken Elevator",
+    "maintenance": "General Maintenance",
+    "plumbing": "Plumbing",
+    "electrical": "Electrical",
+    "hvac": "HVAC",
+    "pest_control": "Pest Control",
+    "noise_complaint": "Noise Complaint",
+    "other": "Other"
+  },
+
+  "auth": {
+    "signInSubtitle": "Sign in to your account",
+    "signUpSubtitle": "Create a new account",
+
+    "confirmedInfo": "Your email has been confirmed. You can now sign in.",
+    "confirmationSentTitle": "Confirmation email sent",
+    "confirmationSentBody": "We sent a confirmation link to",
+    "resendConfirmation": "Resend confirmation email",
+    "sending": "Sending…",
+
+    "emailLabel": "Email address",
+    "emailPlaceholder": "Enter your email",
+    "passwordLabel": "Password",
+    "passwordPlaceholderLogin": "Enter your password",
+    "passwordPlaceholderSignup": "Choose a password",
+
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+
+    "forgotPassword": "Forgot your password?",
+    "enterEmailFirst": "Enter your email first",
+    "pleaseWait": "Please wait…",
+
+    "toggleToSignup": "Don't have an account? Sign up",
+    "toggleToLogin": "Already have an account? Sign in",
+
+    "noAccountFound": "No account found for this email. Please sign up first.",
+    "alreadyConfirmed": "This email is already confirmed. Please sign in.",
+    "resendSent": "We sent another confirmation email. Check your inbox (and spam).",
+    "resendFailed": "Could not resend confirmation email: {{message}}",
+    "resendGenericFail": "Could not resend confirmation email.",
+
+    "resetSent": "We sent a password reset link to your email.",
+    "noProfile": "No profile found for this email.",
+    "noAuthUser": "This email exists but is not yet activated. Please sign up or contact support.",
+    "serverError": "Server error: {{error}}",
+    "resetFailed": "Could not send password reset email.",
+    "resetGenericFail": "Could not send password reset email.",
+
+    "notApproved": "Your email is not approved. Please contact Taldaor.",
+    "alreadyRegistered": "This email is already registered. Please sign in or reset your password.",
+    "genericError": "Something went wrong."
+  },
+
+  "admin": {
+    "dashboardTitle": "Admin Dashboard"
+  },
+
+  "logs": {
+    "title": "Request Logs",
+    "subtitle": "Complete history of all request status changes.",
+    "emptyTitle": "No logs yet",
+    "emptySubtitle": "No request status changes have been logged yet.",
+    "errorLoading": "Error loading logs: {{error}}",
+    "requestPrefix": "Request",
+    "updatedBy": "Updated by:",
+    "time": "Time:",
+    "at": "at",
+    "notes": "Notes:"
+  },
+
+  "common": {
+    "cancel": "Cancel",
+    "hebrew": "Hebrew",
+    "english": "English"
+  },
+
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+
+  "requests": {
+    "errorLoading": "Error loading requests: {{error}}",
+    "total": "Total Requests",
+    "allTitle": "All Requests",
+    "allSubtitle": "Manage and update maintenance requests.",
+    "allStatuses": "All statuses",
+    "noneTitle": "No requests found",
+    "noneSubtitle": "No requests match the current filter.",
+    "type": "Type:",
+    "tenant": "Tenant:",
+    "created": "Created:",
+    "edit": "Edit",
+    "updateModalTitle": "Update Request Status",
+    "requestLabel": "Request",
+    "currentStatus": "Current status:",
+    "newStatus": "New status",
+
+    "notesHe": "Notes (Hebrew)",
+    "notesEn": "Notes (English)",
+    "notesPlaceholderHe": "הערות בעברית לגבי עדכון הסטטוס…",
+    "notesPlaceholderEn": "Add notes in English about this status update…",
+
+    "updateStatus": "Update Status"
+  },
+
+  "newRequest": {
+    "title": "Submit New Request",
+    "subtitle": "Fill out the form to submit a maintenance request.",
+    "requestType": "Request Type",
+    "priority": "Priority",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Brief description of the issue",
+    "description": "Description",
+    "descriptionPlaceholder": "Provide detailed information about the issue, location, and any other relevant details…",
+    "submit": "Submit Request",
+    "submitting": "Submitting…",
+    "successTitle": "Request submitted!",
+    "successSubtitle": "Your request has been submitted successfully. You will be redirected shortly."
   }
 }

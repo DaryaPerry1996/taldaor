@@ -5,7 +5,7 @@ import { FileText, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export function RequestLogs() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [logs, setLogs] = useState<RequestLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,12 +30,23 @@ export function RequestLogs() {
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      setLogs(data || []);
+      setLogs((data || []) as RequestLog[]);
     } catch (error: any) {
       setError(error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const dateLocale = i18n.language === 'he' ? 'he-IL' : 'en-US';
+
+  const pickNotes = (log: RequestLog) => {
+    // prefer current language, fallback to the other, else empty
+    const he = (log.notes_he ?? '').trim();
+    const en = (log.notes_en ?? '').trim();
+
+    if (i18n.language === 'he') return he || en;
+    return en || he;
   };
 
   if (loading) {
@@ -85,50 +96,61 @@ export function RequestLogs() {
       </div>
 
       <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-        {logs.map((log) => (
-          <div key={log.id} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <span dir="ltr" className="text-sm font-medium text-gray-900 text-left">
-                    {t('logs.requestPrefix')} #{log.request_id.slice(-6)}
-                  </span>
+        {logs.map((log) => {
+          const notes = pickNotes(log);
 
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">
-                      {t(`status.${log.old_status}`)}
+          return (
+            <div key={log.id} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span dir="ltr" className="text-sm font-medium text-gray-900 text-left">
+                      {t('logs.requestPrefix')} #{log.request_id.slice(-6)}
                     </span>
 
-                    <ArrowLeft className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">
+                        {t(`status.${log.old_status}`)}
+                      </span>
 
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                      {t(`status.${log.new_status}`)}
+                      <ArrowLeft className="h-4 w-4 text-gray-400" />
+
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                        {t(`status.${log.new_status}`)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {notes && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      <span className="font-medium text-gray-700">{t('logs.notes')} </span>
+                      <span dir={i18n.language === 'he' ? 'rtl' : 'ltr'} className="text-left">
+                        {notes}
+                      </span>
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <span className="font-medium">{t('logs.updatedBy')}</span>
+                      <span dir="ltr" className="text-left">
+                        {log.admin?.email}
+                      </span>
+                    </span>
+
+                    <span className="flex items-center gap-1">
+                      <span className="font-medium">{t('logs.time')}</span>
+                      <span dir="ltr" className="text-left">
+                        {new Date(log.updated_at).toLocaleDateString(dateLocale)} {t('logs.at')}{' '}
+                        {new Date(log.updated_at).toLocaleTimeString(dateLocale)}
+                      </span>
                     </span>
                   </div>
                 </div>
-
-                {log.notes && <p className="text-sm text-gray-600 mb-2">{log.notes}</p>}
-
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <span className="font-medium">{t('logs.updatedBy')}</span>
-                    <span dir="ltr" className="text-left">
-                      {log.admin?.email}
-                    </span>
-                  </span>
-
-                  <span className="flex items-center gap-1">
-                    <span className="font-medium">{t('logs.time')}</span>
-                    <span dir="ltr" className="text-left">
-                      {new Date(log.updated_at).toLocaleDateString('he-IL')} {t('logs.at')}{' '}
-                      {new Date(log.updated_at).toLocaleTimeString('he-IL')}
-                    </span>
-                  </span>
-                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

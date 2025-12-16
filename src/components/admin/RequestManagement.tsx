@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Request, REQUEST_TYPES, PRIORITY_LABELS, RequestStatus } from '../../types';
+import { Request, RequestStatus } from '../../types';
 import { Clock, CheckCircle, AlertCircle, XCircle, Filter, Edit2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export function RequestManagement() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
   const [requests, setRequests] = useState<Request[]>([]);
@@ -14,9 +14,16 @@ export function RequestManagement() {
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<RequestStatus | 'all'>('all');
   const [editingRequest, setEditingRequest] = useState<Request | null>(null);
-  const [updateData, setUpdateData] = useState<{ status: RequestStatus; notes: string }>({
+
+  // ✅ bilingual notes + status
+  const [updateData, setUpdateData] = useState<{
+    status: RequestStatus;
+    notes_he: string;
+    notes_en: string;
+  }>({
     status: 'pending',
-    notes: '',
+    notes_he: '',
+    notes_en: '',
   });
 
   useEffect(() => {
@@ -59,17 +66,22 @@ export function RequestManagement() {
 
       if (updateError) throw updateError;
 
-      const note = (updateData.notes ?? '').trim();
+      const noteHe = (updateData.notes_he ?? '').trim();
+      const noteEn = (updateData.notes_en ?? '').trim();
       const statusChanged = editingRequest.status !== updated.status;
 
-      if (statusChanged || note !== '') {
+      if (statusChanged || noteHe !== '' || noteEn !== '') {
         const ts = updated.updated_at ?? new Date().toISOString();
 
         const { error: logError } = await supabase.from('request_logs').insert({
           request_id: updated.id,
           old_status: editingRequest.status,
           new_status: updated.status,
-          notes: note || null,
+
+          // ✅ new bilingual columns (must exist in DB)
+          notes_he: noteHe || null,
+          notes_en: noteEn || null,
+
           created_by: updated.tenant_id,
           created_at: updated.created_at,
           updated_by: user.id,
@@ -81,7 +93,7 @@ export function RequestManagement() {
 
       await fetchRequests();
       setEditingRequest(null);
-      setUpdateData({ status: 'pending', notes: '' });
+      setUpdateData({ status: 'pending', notes_he: '', notes_en: '' });
     } catch (error: any) {
       setError(error.message ?? String(error));
     }
@@ -140,6 +152,9 @@ export function RequestManagement() {
     return acc;
   }, {} as Record<string, number>);
 
+  const nf = new Intl.NumberFormat(i18n.language === 'he' ? 'he-IL' : 'en-US');
+  const dateLocale = i18n.language === 'he' ? 'he-IL' : 'en-US';
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-8">
@@ -175,9 +190,7 @@ export function RequestManagement() {
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">{t('requests.total')}</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {new Intl.NumberFormat('he-IL').format(requests.length)}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{nf.format(requests.length)}</p>
             </div>
             <Clock className="h-8 w-8 text-gray-400" />
           </div>
@@ -187,9 +200,7 @@ export function RequestManagement() {
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">{t('status.pending')}</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {new Intl.NumberFormat('he-IL').format(statusCounts.pending || 0)}
-              </p>
+              <p className="text-2xl font-bold text-yellow-600">{nf.format(statusCounts.pending || 0)}</p>
             </div>
             <Clock className="h-8 w-8 text-yellow-400" />
           </div>
@@ -199,9 +210,7 @@ export function RequestManagement() {
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">{t('status.in_progress')}</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {new Intl.NumberFormat('he-IL').format(statusCounts.in_progress || 0)}
-              </p>
+              <p className="text-2xl font-bold text-blue-600">{nf.format(statusCounts.in_progress || 0)}</p>
             </div>
             <AlertCircle className="h-8 w-8 text-blue-400" />
           </div>
@@ -211,9 +220,7 @@ export function RequestManagement() {
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">{t('status.completed')}</p>
-              <p className="text-2xl font-bold text-green-600">
-                {new Intl.NumberFormat('he-IL').format(statusCounts.completed || 0)}
-              </p>
+              <p className="text-2xl font-bold text-green-600">{nf.format(statusCounts.completed || 0)}</p>
             </div>
             <CheckCircle className="h-8 w-8 text-green-400" />
           </div>
@@ -283,7 +290,7 @@ export function RequestManagement() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <span className="font-medium">{t('requests.type')}</span>
-                        <span>{REQUEST_TYPES[request.type as keyof typeof REQUEST_TYPES]}</span>
+                        <span>{t(`requestTypes.${request.type}`)}</span>
                       </span>
 
                       <span className="flex items-center gap-1">
@@ -296,7 +303,7 @@ export function RequestManagement() {
                       <span className="flex items-center gap-1">
                         <span className="font-medium">{t('requests.created')}</span>
                         <span dir="ltr" className="text-left">
-                          {new Date(request.created_at).toLocaleDateString('he-IL')}
+                          {new Date(request.created_at).toLocaleDateString(dateLocale)}
                         </span>
                       </span>
                     </div>
@@ -307,7 +314,7 @@ export function RequestManagement() {
                     <button
                       onClick={() => {
                         setEditingRequest(request);
-                        setUpdateData({ status: request.status as RequestStatus, notes: '' });
+                        setUpdateData({ status: request.status as RequestStatus, notes_he: '', notes_en: '' });
                       }}
                       className="p-2 text-gray-400 hover:text-blue-600 transition-colors duration-200"
                       aria-label={t('requests.edit')}
@@ -358,18 +365,36 @@ export function RequestManagement() {
                 </select>
               </div>
 
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('requests.notesOptional')}
-                </label>
-                <textarea
-                  id="notes"
-                  rows={3}
-                  value={updateData.notes}
-                  onChange={(e) => setUpdateData({ ...updateData, notes: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={t('requests.notesPlaceholder')}
-                />
+              {/* ✅ bilingual notes */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label htmlFor="notes_he" className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('requests.notesHe')}
+                  </label>
+                  <textarea
+                    id="notes_he"
+                    rows={3}
+                    value={updateData.notes_he}
+                    onChange={(e) => setUpdateData({ ...updateData, notes_he: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={t('requests.notesPlaceholderHe')}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="notes_en" className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('requests.notesEn')}
+                  </label>
+                  <textarea
+                    id="notes_en"
+                    dir="ltr"
+                    rows={3}
+                    value={updateData.notes_en}
+                    onChange={(e) => setUpdateData({ ...updateData, notes_en: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={t('requests.notesPlaceholderEn')}
+                  />
+                </div>
               </div>
             </div>
 

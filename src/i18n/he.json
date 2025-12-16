@@ -16,6 +16,7 @@
     "admin": "מנהל",
     "tenant": "דייר"
   },
+
   "status": {
     "pending": "ממתין",
     "in_progress": "בטיפול",
@@ -24,7 +25,20 @@
     "approved": "אושר",
     "rejected": "נדחה"
   },
-    "auth": {
+
+  "requestTypes": {
+    "trash_removal": "פינוי אשפה",
+    "elevator": "מעלית תקולה",
+    "maintenance": "תחזוקה כללית",
+    "plumbing": "אינסטלציה",
+    "electrical": "חשמל",
+    "hvac": "מיזוג/אוורור",
+    "pest_control": "הדברה",
+    "noise_complaint": "תלונת רעש",
+    "other": "אחר"
+  },
+
+  "auth": {
     "signInSubtitle": "התחברי לחשבון שלך",
     "signUpSubtitle": "צרי חשבון חדש",
 
@@ -67,9 +81,11 @@
     "alreadyRegistered": "האימייל כבר רשום. התחברי או בצעי איפוס סיסמה.",
     "genericError": "משהו השתבש."
   },
+
   "admin": {
     "dashboardTitle": "לוח ניהול"
   },
+
   "logs": {
     "title": "יומן פניות",
     "subtitle": "היסטוריה מלאה של כל שינויי הסטטוס בפניות.",
@@ -79,18 +95,23 @@
     "requestPrefix": "פנייה",
     "updatedBy": "עודכן ע\"י:",
     "time": "זמן:",
-    "at": "בשעה"
+    "at": "בשעה",
+    "notes": "הערות:"
   },
-  
+
   "common": {
-    "cancel": "ביטול"
+    "cancel": "ביטול",
+    "hebrew": "עברית",
+    "english": "אנגלית"
   },
+
   "priority": {
     "low": "נמוכה",
     "medium": "בינונית",
     "high": "גבוהה",
     "urgent": "דחופה"
   },
+
   "requests": {
     "errorLoading": "שגיאה בטעינת הפניות: {{error}}",
     "total": "סה״כ פניות",
@@ -107,10 +128,15 @@
     "requestLabel": "פנייה",
     "currentStatus": "סטטוס נוכחי:",
     "newStatus": "סטטוס חדש",
-    "notesOptional": "הערות (אופציונלי)",
-    "notesPlaceholder": "הוסיפי הערות לגבי עדכון הסטטוס…",
+
+    "notesHe": "הערות (עברית)",
+    "notesEn": "הערות (אנגלית)",
+    "notesPlaceholderHe": "הוסיפי הערות בעברית לגבי עדכון הסטטוס…",
+    "notesPlaceholderEn": "Add notes in English about this status update…",
+
     "updateStatus": "עדכן סטטוס"
   },
+
   "newRequest": {
     "title": "שליחת פנייה חדשה",
     "subtitle": "מלאי את הטופס כדי לשלוח פנייה לתחזוקה.",
@@ -125,7 +151,4 @@
     "successTitle": "הפנייה נשלחה!",
     "successSubtitle": "הפנייה נשלחה בהצלחה. בעוד רגע תועברי לצפייה בפניות."
   }
-
-
-
 }
